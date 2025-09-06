@@ -50,29 +50,22 @@ func EnqueueAssets(paths []string) {
 	}
 }
 
-func ScanOne() {
-	var cacheAsset Cache
-	if len(queue) == 0 {
-		return
-	}
-
-	cacheAsset, queue = queue[0], queue[1:]
-	parsed, err := ParseOne(cacheAsset)
-	if err != nil {
-		println("Error parsing cache:", err.Error())
-		return
-	}
-
-	if parsed.Success {
-		parsedCache = append(parsedCache, parsed)
-	} else {
-		println("Parsed cache was not successful for path:", cacheAsset.Path)
-	}
-}
-
 func ScanAll() {
+	// drain the queue
+	println("Scanning", len(queue), "cache files...")
 	for len(queue) > 0 {
-		ScanOne()
+		var cacheAsset Cache
+
+		cacheAsset, queue = queue[0], queue[1:]
+		parsed, err := ParseOne(cacheAsset)
+		if err != nil {
+			println("Error parsing cache:", err.Error())
+			continue
+		}
+
+		if parsed.Success {
+			parsedCache = append(parsedCache, parsed)
+		}
 	}
 }
 
@@ -114,17 +107,17 @@ func ParseData(data []byte, path string) ParsedCache {
 		return ParsedCache{Success: false}
 	}
 
-	// Check magic number
+	// get magic number
 	magic := string(data[0:4])
 	if magic != "RBXH" {
 		println("Ignoring non-RBXH magic:", magic)
 		return ParsedCache{Success: false}
 	}
 
-	// Skip header size (4 bytes)
+	// skip header size (4 bytes)
 	pos := 8
 
-	// Read link length
+	// read link length
 	if len(data) < pos+4 {
 		return ParsedCache{Success: false}
 	}
@@ -140,31 +133,30 @@ func ParseData(data []byte, path string) ParsedCache {
 		pos += int(linklen)
 	}
 
-	// Skip rogue byte
+	// skip byte
 	pos++
 
-	// Read status
+	// read http status
 	if len(data) < pos+4 {
 		return ParsedCache{Success: false}
 	}
 	status := binary.LittleEndian.Uint32(data[pos : pos+4])
 	if status >= 300 {
-		println("Ignoring non-successful cache:", status)
 		return ParsedCache{Success: false}
 	}
 	pos += 4
 
-	// Read header length
+	// read header length
 	if len(data) < pos+4 {
 		return ParsedCache{Success: false}
 	}
 	headerlen := binary.LittleEndian.Uint32(data[pos : pos+4])
 	pos += 4
 
-	// Skip XXHash digest (4 bytes)
+	// skip xxhash digest (4 bytes)
 	pos += 4
 
-	// Read content length
+	// read content length
 	if len(data) < pos+4 {
 		return ParsedCache{Success: false}
 	}
@@ -174,15 +166,12 @@ func ParseData(data []byte, path string) ParsedCache {
 	// Skip XXHash digest (4 bytes) and reserved bytes (4 bytes) and headers
 	pos += 8 + int(headerlen)
 
-	// Read content
+	// read content
 	if len(data) < pos+int(contentlen) {
 		return ParsedCache{Success: false}
 	}
 	content := data[pos : pos+int(contentlen)]
 
-	println("Parsed cache with link:", link, "and content length:", len(content))
-
-	// Return parsed cache
 	return ParsedCache{Success: true, Link: link, Path: path, Data: content}
 }
 
@@ -235,7 +224,12 @@ func DumpOne(parsed ParsedCache) {
 }
 
 func DumpAll() {
-	for _, parsed := range parsedCache {
+	// drain the parsed cache
+	println("Dumping", len(parsedCache), "parsed cache files...")
+	for len(parsedCache) > 0 {
+		var parsed ParsedCache
+
+		parsed, parsedCache = parsedCache[0], parsedCache[1:]
 		DumpOne(parsed)
 	}
 }

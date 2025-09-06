@@ -31,7 +31,6 @@ func main() {
 	println("Found", len(found), "files in cache directory.")
 	dumper.EnqueueAssets(found)
 
-	println("Starting dump...")
 	dumper.ScanAll()
 	dumper.DumpAll()
 
