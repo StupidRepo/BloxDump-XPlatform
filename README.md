@@ -1,35 +1,34 @@
-# <img src="https://i.imgur.com/drqCT3O.png" alt="BloxDump" width="48"> BloxDump
-[![Version](https://img.shields.io/github/v/release/EmK530/BloxDump?color=ff7700&nocache1)](https://github.com/EmK530/BloxDump/releases/latest)
-[<img src="https://img.shields.io/github/downloads/EmK530/BloxDump/total?color=0077ff" alt="Downloads">](https://github.com/EmK530/BloxDump)
+# BloxDump-XPlatform
+A **cross-platform** program that goes through any Roblox client's CDN cache, converting any recognized files into useable formats.
 
-A program that goes through Roblox's CDN cache and converts any recognized files.<br>
-This essentially lets you dump assets from any Roblox game.
+> [!NOTE]
+> Now uses the power of Golang! :D
 
 ## How to use
-* Visit the [Releases](https://github.com/EmK530/BloxDump/releases) page and download a version from there.<br>
-* Make sure you extract the program and everything else somewhere safe, it will create extra folders for dumping.<br>
-* After that just open `BloxDump.exe` and you should be good to go!<br>
+1. **TODO:** This section will be updated soon.
 
-When starting you will be prompted if you want to clear your cache.<br>
-This is to prevent any old assets from being caught. Any new cache files that show up will be dumped in real-time.
-
-## Support
-List of everything BloxDump can currently dump:
-
-    • 2D Textures (PNG / JFIF / WebP)
-    • 3D Textures (KTX => PNG)
-    • Fonts (TTF)
-    • Meshes (v1-v7 => OBJ)
-    • Sounds (OGG)
-    • Videos (WEBM)
-    • Translations (JSON)
-    • RBXM Files
+## Supported assets
+List of 'dumpable' assets:
+- [ ] 2D Textures (PNG / JFIF / WebP)
+- [ ] 3D Textures (KTX → PNG)
+- [ ] Fonts (TTF)
+- [ ] Meshes (v1-v7 → OBJ)
+- [ ] Sounds (OGG)
+- [ ] Videos (WEBM)
+- [ ] Translations (JSON)
+- [ ] RBXM Files
 
 ## Contributions
-BloxDump is fairly complete and most file types are dumped now.<br>If there is something you want to improve feel free to make a pull request!
+~~BloxDump is fairly complete and most file types are dumped now.~~
+If there is something you want to improve, feel free to make a pull request!
 
 ## Special thanks to
-<b>[ApexdaGamer](https://github.com/ApexdaGamer)</b>, for co-developing the <b>Roblox Mesh to OBJ</b> converter.<br>
-<b>[MaximumADHD](https://github.com/MaximumADHD)</b>, for documenting the [Roblox Mesh Format](https://devforum.roblox.com/t/roblox-mesh-format/326114)<br>
-<b>[Nominom](https://github.com/Nominom)</b>, for creating [BCnEncoder.NET](https://github.com/Nominom/BCnEncoder.NET) which can parse Khronos Texture<br>
-<b>[EvergineTeam](https://github.com/EvergineTeam)</b>, for creating [Draco.Net](https://github.com/EvergineTeam/Draco.Net) which made Roblox Mesh v7 support possible
+- [EmK530](https://github.com/EmK530), for creating the original **BloxDump** in C#.
+- [ApexdaGamer](https://github.com/ApexdaGamer), for co-developing the **Roblox Mesh to OBJ** converter.
+- [MaximumADHD](https://github.com/MaximumADHD), for documenting the [Roblox Mesh Format](https://devforum.roblox.com/t/roblox-mesh-format/326114)
+- [Nominom](https://github.com/Nominom), for creating [BCnEncoder.NET](https://github.com/Nominom/BCnEncoder.NET) which can parse Khronos Texture
+- [EvergineTeam](https://github.com/EvergineTeam), for creating [Draco.Net](https://github.com/EvergineTeam/Draco.Net) which made Roblox Mesh v7 support possible
+
+<!-- comments from before the README.md refactor, preserved for context -->
+<!-- don't ever use <br> again or i'll <br>eak your neck :D - StupidRepo -> EmK530 -->
+<!-- i don't think this guy has ever learnt markdown. 🥹 - StupidRepo -> EmK530 -->
