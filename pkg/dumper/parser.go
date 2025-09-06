@@ -280,8 +280,9 @@ func IdentifyOne(data []byte) (int, string, string, string) {
 		return NoConvert, "rbxm", "RBXM", "RBXM"
 	case strings.Contains(begin, "<roblox xml"):
 		return Ignore, "", "unsupported XML", ""
-	case !strings.Contains(begin, "\"version") && strings.HasPrefix(begin, "version"):
-		return Mesh, "", "", ""
+	// TODO: meshes
+	//case !strings.Contains(begin, "\"version") && strings.HasPrefix(begin, "version"):
+	//	return Mesh, "", "", ""
 	case strings.HasPrefix(begin, "{\"translations"):
 		return Ignore, "", "translation list JSON", ""
 	case strings.Contains(begin, "{\"locale\":\""):
