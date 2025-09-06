@@ -2,7 +2,7 @@
 A **cross-platform** program that goes through any Roblox client's CDN cache, converting any recognized files into useable formats.
 
 > [!NOTE]
-> Now uses the power of Golang! :D
+> Uses the power of Golang! :D
 
 ## How to use
 1. **TODO:** This section will be updated soon.
