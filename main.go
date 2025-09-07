@@ -5,6 +5,7 @@ import (
 	"github.com/StupidRepo/BloxDump-XPlatform/pkg/dumper"
 	"github.com/StupidRepo/BloxDump-XPlatform/pkg/utils"
 	"os"
+	"sync"
 )
 
 func main() {
@@ -21,18 +22,37 @@ func main() {
 	}
 
 	println("Config loaded successfully.")
-	println("Roblox Cache Directory:", config.AppConfig.RobloxCacheDir)
+	println("Roblox Cache Directory:", *config.AppConfig.RobloxCacheDir)
 
-	found, err := utils.GetFilesInDirectory(config.AppConfig.RobloxCacheDir)
+	found, err := utils.GetFilesInDirectory(*config.AppConfig.RobloxCacheDir)
 	if err != nil {
 		panic(err)
 	}
 
 	println("Found", len(found), "files in cache directory.")
-	dumper.EnqueueAssets(found)
 
-	dumper.ScanAll()
-	dumper.DumpAll()
+	parsedList := dumper.ParseAll(found)
+	println("Dumping", len(parsedList), "parsed cache files...")
 
+	var wg sync.WaitGroup
+	jobs := make(chan dumper.ParsedCache, len(parsedList))
+
+	for w := 0; w < *config.AppConfig.Threads; w++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			for parsed := range jobs {
+				dumper.DumpOne(parsed)
+			}
+		}()
+	}
+
+	for _, parsed := range parsedList {
+		jobs <- parsed
+	}
+	close(jobs)
+
+	wg.Wait()
 	println("Dump complete.")
 }

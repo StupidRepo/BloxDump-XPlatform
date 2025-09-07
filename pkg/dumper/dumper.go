@@ -27,18 +27,10 @@ func DumpOne(parsed ParsedCache) {
 
 	println("Preparing to save asset of type", friendlyName)
 
-	outDir := path.Join(config.AppConfig.OutputDir, folderName)
+	outDir := path.Join(*config.AppConfig.OutputDir, folderName)
 	outPath := path.Join(outDir, path.Base(parsed.Path)+"."+ext)
 
-	if !utils.DirectoryExists(outDir) {
-		err := os.MkdirAll(outDir, os.ModePerm)
-		if err != nil {
-			println("Error creating output directory:", err.Error())
-			return
-		}
-	}
-
-	if utils.DirectoryExists(outPath) {
+	if utils.Exists(outPath) {
 		//println("File already exists, skipping:", outPath)
 		return
 	}
@@ -53,21 +45,23 @@ func DumpOne(parsed ParsedCache) {
 		println("Unhandled asset type:", friendlyName)
 	}
 
+	if finalData == nil || len(finalData) == 0 {
+		return
+	}
+
 	println("Saving asset...")
+
+	if !utils.Exists(outDir) {
+		err := os.MkdirAll(outDir, 0755)
+		if err != nil {
+			println("Error creating output directory:", err.Error())
+			return
+		}
+	}
 
 	err := os.WriteFile(outPath, finalData, 0644)
 	if err != nil {
 		println("Error writing file:", err.Error())
 		return
-	}
-}
-func DumpAll() {
-	// drain the parsed cache
-	println("Dumping", len(parsedCache), "parsed cache files...")
-	for len(parsedCache) > 0 {
-		var parsed ParsedCache
-
-		parsed, parsedCache = parsedCache[0], parsedCache[1:]
-		DumpOne(parsed)
 	}
 }

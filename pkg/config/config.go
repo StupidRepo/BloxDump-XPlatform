@@ -7,15 +7,19 @@ import (
 )
 
 const (
-	ExpectedVersion = 1
+	ExpectedVersion = 3
 	Path            = "config.json"
 )
 
 type Config struct {
-	Version int `json:"config_version"` // Config version for compatibility checks
+	Version *int `json:"config_version"`
 
-	RobloxCacheDir string `json:"roblox_cache_dir"` // Directory for Roblox cache
-	OutputDir      string `json:"output_dir"`       // Directory for output files
+	RobloxCacheDir *string `json:"roblox_cache_dir"`
+	OutputDir      *string `json:"output_dir"`
+
+	Threads *int `json:"threads"`
+
+	Migrations *[]int `json:"migrations"`
 }
 
 var AppConfig Config
@@ -38,19 +42,25 @@ func LoadConfig() error {
 	}
 
 	// check version
-	if AppConfig.Version != ExpectedVersion {
-		return utils.VersionMismatch(AppConfig.Version, ExpectedVersion)
+	if *AppConfig.Version != ExpectedVersion {
+		// migrate config
+		println("Config version mismatch, migrating config...")
+		MigrateConfig(&AppConfig)
+
+		if err := SaveConfig(); err != nil {
+			return err
+		}
 	}
 
 	// create output directory if it doesn't exist
-	if !utils.DirectoryExists(AppConfig.OutputDir) {
-		if err := os.MkdirAll(AppConfig.OutputDir, os.ModePerm); err != nil {
+	if !utils.Exists(*AppConfig.OutputDir) {
+		if err := os.MkdirAll(*AppConfig.OutputDir, os.ModePerm); err != nil {
 			return err
 		}
 	}
 
 	// check directories
-	return utils.DirectoriesExist([]string{AppConfig.RobloxCacheDir})
+	return utils.DirectoriesExist([]string{*AppConfig.RobloxCacheDir})
 }
 
 func SaveConfig() error {
@@ -71,15 +81,22 @@ func SaveConfig() error {
 		return err
 	}
 
-	println("Configuration saved successfully.")
-
 	return nil
 }
 
 func CreateConfig() Config {
-	return Config{
-		Version: ExpectedVersion,
+	version := ExpectedVersion
+	robloxCacheDir := "change-me"
+	outputDir := "assets_output"
+	threads := 4
 
-		OutputDir: "assets_output",
+	var migrations []int
+
+	return Config{
+		Version:        &version,
+		RobloxCacheDir: &robloxCacheDir,
+		OutputDir:      &outputDir,
+		Threads:        &threads,
+		Migrations:     &migrations,
 	}
 }

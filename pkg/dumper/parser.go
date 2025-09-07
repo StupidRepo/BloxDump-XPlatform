@@ -11,10 +11,6 @@ type Asset struct {
 	Type     string
 }
 
-type Cache struct {
-	Path string
-}
-
 type ParsedCache struct {
 	Success bool
 
@@ -24,26 +20,10 @@ type ParsedCache struct {
 	Data []byte
 }
 
-var queue []Cache
-var parsedCache []ParsedCache
+func ParseAll(paths []string) []ParsedCache {
+	var parsedCache []ParsedCache
 
-func EnqueueAsset(path string) {
-	queue = append(queue, Cache{Path: path})
-}
-
-func EnqueueAssets(paths []string) {
-	for _, p := range paths {
-		EnqueueAsset(p)
-	}
-}
-
-func ScanAll() {
-	// drain the queue
-	println("Scanning", len(queue), "cache files...")
-	for len(queue) > 0 {
-		var cacheAsset Cache
-
-		cacheAsset, queue = queue[0], queue[1:]
+	for _, cacheAsset := range paths {
 		parsed, err := parseCacheAsset(cacheAsset)
 		if err != nil {
 			println("Error parsing cache:", err.Error())
@@ -54,11 +34,13 @@ func ScanAll() {
 			parsedCache = append(parsedCache, parsed)
 		}
 	}
+
+	return parsedCache
 }
 
-func parseCacheAsset(cacheAsset Cache) (ParsedCache, error) {
+func parseCacheAsset(path string) (ParsedCache, error) {
 	// try to see if file exists
-	file, err := os.Open(cacheAsset.Path)
+	file, err := os.Open(path)
 	if err != nil {
 		return ParsedCache{Success: false}, err
 	}
@@ -81,7 +63,7 @@ func parseCacheAsset(cacheAsset Cache) (ParsedCache, error) {
 		return ParsedCache{Success: false}, err
 	}
 
-	return parseCacheData(data, cacheAsset.Path), nil
+	return parseCacheData(data, path), nil
 }
 
 func parseCacheData(data []byte, path string) ParsedCache {

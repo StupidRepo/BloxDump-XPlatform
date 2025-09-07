@@ -9,10 +9,10 @@ A **cross-platform** program that goes through any Roblox client's CDN cache, co
 
 ## Supported assets
 List of supported assets:
-  - [x] 2D Textures (PNG / JFIF / WebP)
+  - [x] 2D Textures (PNG, GIF, JFIF, WebP)
   - [ ] 3D Textures (KTX → PNG)
+  - [ ] Meshes (OBJ, planned to soon be exported as: FBX)
   - [ ] Fonts (TTF)
-  - [ ] Meshes (v1-v7 → OBJ)
   - [x] Sounds (OGG)
   - [ ] Videos (WEBM)
   - [ ] Translations (JSON)
