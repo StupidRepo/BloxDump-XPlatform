@@ -29,14 +29,6 @@ type ParsedCache struct {
 	Data []byte
 }
 
-const (
-	Unknown = iota
-	Ignore
-	NoConvert
-	Mesh
-	WebP
-)
-
 var queue []Cache
 var parsedCache []ParsedCache
 
@@ -57,7 +49,7 @@ func ScanAll() {
 		var cacheAsset Cache
 
 		cacheAsset, queue = queue[0], queue[1:]
-		parsed, err := ParseOne(cacheAsset)
+		parsed, err := parseCacheAsset(cacheAsset)
 		if err != nil {
 			println("Error parsing cache:", err.Error())
 			continue
@@ -69,10 +61,10 @@ func ScanAll() {
 	}
 }
 
-func ParseOne(cacheAsset Cache) (ParsedCache, error) {
+func parseCacheAsset(cacheAsset Cache) (ParsedCache, error) {
 	if cacheAsset.Data != nil {
 		// parse from data
-		return ParseData(cacheAsset.Data, cacheAsset.Path), nil
+		return parseCacheData(cacheAsset.Data, cacheAsset.Path), nil
 	}
 
 	// try to see if file exists
@@ -99,10 +91,10 @@ func ParseOne(cacheAsset Cache) (ParsedCache, error) {
 		return ParsedCache{Success: false}, err
 	}
 
-	return ParseData(data, cacheAsset.Path), nil
+	return parseCacheData(data, cacheAsset.Path), nil
 }
 
-func ParseData(data []byte, path string) ParsedCache {
+func parseCacheData(data []byte, path string) ParsedCache {
 	if len(data) < 4 {
 		return ParsedCache{Success: false}
 	}
@@ -181,45 +173,51 @@ func DumpOne(parsed ParsedCache) {
 		return
 	}
 
-	assetType, ext, friendlyName, folderName := IdentifyOne(parsed.Data)
-	if assetType == Ignore || assetType == Unknown {
+	// if link contains -AvatarHeadshot- or -Avatar-, skip
+	if strings.Contains(parsed.Link, "-AvatarHeadshot-") || strings.Contains(parsed.Link, "-Avatar-") {
+		println("Skipping avatar image")
 		return
 	}
 
-	switch assetType {
-	case NoConvert, WebP:
-		// if link contains -AvatarHeadshot- or -Avatar-, skip
-		if strings.Contains(parsed.Link, "-AvatarHeadshot-") || strings.Contains(parsed.Link, "-Avatar-") {
-			println("Skipping avatar image")
-			return
-		}
-		// create out directory if it doesn't exist
-		outDir := path.Join(config.AppConfig.OutputDir, folderName)
-		if !utils.DirectoryExists(outDir) {
-			err := os.MkdirAll(outDir, os.ModePerm)
-			if err != nil {
-				println("Error creating output directory:", err.Error())
-				return
-			}
-		}
+	assetType, ext, friendlyName, folderName := utils.IdentifyAssetType(parsed.Data)
+	if assetType == utils.Ignore || assetType == utils.Unknown {
+		return
+	}
 
-		outPath := path.Join(outDir, path.Base(parsed.Path)+"."+ext)
-		if utils.DirectoryExists(outPath) {
-			//println("File already exists, skipping:", outPath)
-			return
-		}
+	println("Preparing to save asset of type", friendlyName)
 
-		// write to file
-		println("Saving asset of type", friendlyName)
+	outDir := path.Join(config.AppConfig.OutputDir, folderName)
+	outPath := path.Join(outDir, path.Base(parsed.Path)+"."+ext)
 
-		err := os.WriteFile(outPath, parsed.Data, 0644)
+	if !utils.DirectoryExists(outDir) {
+		err := os.MkdirAll(outDir, os.ModePerm)
 		if err != nil {
-			println("Error writing file:", err.Error())
+			println("Error creating output directory:", err.Error())
 			return
 		}
+	}
 
+	if utils.DirectoryExists(outPath) {
+		//println("File already exists, skipping:", outPath)
+		return
+	}
+
+	var finalData []byte // final data to write to file
+
+	switch assetType {
+	case utils.NoConvert:
+		finalData = parsed.Data
+	// TODO: Khronos, EXTM3U, FontList, FFlags JSON, client version JSON, OpenType/TrueType font, Zstandard, VideoFrame segment
 	default:
-		//println("Unhandled asset type:", friendlyName)
+		println("Unhandled asset type:", friendlyName)
+	}
+
+	println("Saving asset...")
+
+	err := os.WriteFile(outPath, finalData, 0644)
+	if err != nil {
+		println("Error writing file:", err.Error())
+		return
 	}
 }
 
@@ -231,70 +229,5 @@ func DumpAll() {
 
 		parsed, parsedCache = parsedCache[0], parsedCache[1:]
 		DumpOne(parsed)
-	}
-}
-
-// IdentifyOne returns: (asset type, file extension, friendly name, folder name)
-func IdentifyOne(data []byte) (int, string, string, string) {
-	// no idea how this works but:
-	/*
-	   string begin = Encoding.UTF8.GetString(cnt[..Math.Min(48, cnt.Length - 1)]);
-	   uint magic = BitConverter.ToUInt32(cnt, 0);
-	*/
-	begin := string(data[0:48])
-	//magic := binary.LittleEndian.Uint32(data[0:4])
-
-	/*
-	   return begin switch
-	   {
-	       var s when s.Contains("<roblox!") => (AssetType.NoConvert, "rbxm", "RBXM", "RBXM"),
-	       var s when s.Contains("<roblox xml") => (AssetType.Ignored, "", "unsupported XML", ""),
-	       var s when !s.Contains("\"version") && s.StartsWith("version") => (AssetType.Mesh, "", "", ""),
-	       var s when s.StartsWith("{\"translations") => (AssetType.Ignored, "", "translation list JSON", ""),
-	       var s when s.Contains("{\"locale\":\"") => (AssetType.Translation, "", "", ""),
-	       var s when s.Contains("PNG\r\n") => (AssetType.NoConvert, "png", "PNG", "Textures"),
-	       var s when s.StartsWith("GIF87a") || s.StartsWith("GIF89a") => (AssetType.NoConvert, "gif", "GIF", "Textures"),
-	       var s when s.Contains("JFIF") || s.Contains("Exif") => (AssetType.NoConvert, "jfif", "JFIF", "Textures"),
-	       var s when s.StartsWith("RIFF") && s.Contains("WEBP") => (BlockAvatarImages ? (AssetType.WebP, "webp", "WebP", "Textures") : (AssetType.NoConvert, "webp", "WebP", "Textures")),
-	       var s when s.StartsWith("OggS") => (AssetType.NoConvert, "ogg", "OGG", "Sounds"),
-	       var s when s.StartsWith("ID3") || (cnt.Length > 2 && (cnt[0] & 0xFF) == 0xFF && (cnt[1] & 0xE0) == 0xE0) => (AssetType.NoConvert, "mp3", "MP3", "Sounds"),
-	       var s when s.Contains("KTX 11") => (AssetType.Khronos, "", "", ""),
-	       var s when s.StartsWith("#EXTM3U") => (AssetType.EXTM3U, "", "", ""),
-	       var s when s.Contains("\"name\": \"") => (AssetType.FontList, "", "", ""),
-	       var s when s.Contains("{\"applicationSettings") => (AssetType.Ignored, "", "FFlags JSON", ""),
-	       var s when s.Contains("{\"version") => (AssetType.Ignored, "", "client version JSON", ""),
-	       var s when s.Contains("GDEF") || s.Contains("GPOS") || s.Contains("GSUB") => (AssetType.Ignored, "", "OpenType/TrueType font", ""),
-	       var s when magic == 0xFD2FB528 => (AssetType.Ignored, "", "Zstandard compressed data (likely FFlags)", ""),
-	       var s when cnt.Length >= 4 && cnt[0] == 0x1A && cnt[1] == 0x45 && cnt[2] == 0xDF && cnt[3] == 0xA3 => (AssetType.Ignored, "", "VideoFrame segment", ""),
-	       _ => (AssetType.Unknown, begin, "", "")
-	   };
-	*/
-	switch {
-	case strings.Contains(begin, "<roblox!"):
-		return NoConvert, "rbxm", "RBXM", "RBXM"
-	case strings.Contains(begin, "<roblox xml"):
-		return Ignore, "", "unsupported XML", ""
-	// TODO: meshes
-	//case !strings.Contains(begin, "\"version") && strings.HasPrefix(begin, "version"):
-	//	return Mesh, "", "", ""
-	case strings.HasPrefix(begin, "{\"translations"):
-		return Ignore, "", "translation list JSON", ""
-	case strings.Contains(begin, "{\"locale\":\""):
-		return Ignore, "", "", ""
-	case strings.Contains(begin, "PNG\r\n"):
-		return NoConvert, "png", "PNG", "Textures"
-	case strings.HasPrefix(begin, "GIF87a"), strings.HasPrefix(begin, "GIF89a"):
-		return NoConvert, "gif", "GIF", "Textures"
-	case strings.Contains(begin, "JFIF"), strings.Contains(begin, "Exif"):
-		return NoConvert, "jfif", "JFIF", "Textures"
-	case strings.HasPrefix(begin, "RIFF") && strings.Contains(begin, "WEBP"):
-		return WebP, "webp", "WebP", "Textures"
-	case strings.HasPrefix(begin, "OggS"):
-		return NoConvert, "ogg", "OGG", "Sounds"
-	case strings.HasPrefix(begin, "ID3"), len(data) > 2 && (data[0]&0xFF) == 0xFF && (data[1]&0xE0) == 0xE0:
-		return NoConvert, "mp3", "MP3", "Sounds"
-	// TODO: skipping Khronos, EXTM3U, FontList, FFlags JSON, client version JSON, OpenType/TrueType font, Zstandard, VideoFrame segment for now
-	default:
-		return Unknown, begin, "", ""
 	}
 }
